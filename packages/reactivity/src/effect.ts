@@ -1,4 +1,7 @@
-type KeyToDepMap = Map<any, ReactiveEffect>
+import { isArray } from '@vue/shared'
+import { Dep, createDep } from './dep'
+
+type KeyToDepMap = Map<any, Dep>
 /**
  * 收集所有依赖的 WeakMap 实例
  * 1. key： 响应性对象
@@ -42,8 +45,20 @@ export function track(target: object, key: unknown) {
     targetMap.set(target, (depsMap = new Map()))
   }
 
-  // 为指定的属性设置依赖函数
-  depsMap.set(key, activeEffect)
+  let dep = depsMap.get(key)
+  if (!dep) {
+    depsMap.set(key, (dep = createDep()))
+  }
+
+  trackEffects(dep)
+}
+
+/**
+ * 利用 dep 依次跟踪指定 key 的所有 effect
+ * @param dep 依赖函数的 Set 集合
+ */
+export function trackEffects(dep: Dep) {
+  dep.add(activeEffect!)
 }
 
 /**
@@ -59,11 +74,32 @@ export function trigger(target: object, key: unknown, newValue: unknown) {
     return
   }
 
-  const effect = depsMap.get(key) as ReactiveEffect
+  const dep: Dep | undefined = depsMap.get(key)
 
-  if (!effect) {
+  if (!dep) {
     return
   }
 
-  effect.fn()
+  triggerEffects(dep)
+}
+
+/**
+ * 依次触发 dep 中保存的依赖
+ * @param dep 依赖函数的 Set 集合
+ */
+export function triggerEffects(dep: Dep) {
+  const effects = isArray(dep) ? dep : [...dep]
+
+  // 依次触发依赖
+  for (const effect of effects) {
+    triggerEffect(effect)
+  }
+}
+
+/**
+ * 触发具体的指定依赖
+ * @param effect 具体依赖，ReactiveEffect 的实例
+ */
+export function triggerEffect(effect: ReactiveEffect) {
+  effect.run()
 }
