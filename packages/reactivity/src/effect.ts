@@ -17,7 +17,7 @@ export function effect<T = any>(fn: () => T) {
   _effect.run()
 }
 
-let activeEffect: ReactiveEffect | undefined
+export let activeEffect: ReactiveEffect | undefined
 
 export class ReactiveEffect<T = any> {
   constructor(public fn: () => T) {}
