@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    /*
+    1. computed中会基于传入的getter创建ReactiveEffect类，并传入了第二个函数作为调度器，这个getter中的obj.name又依赖了obj，但此时还没执行getter
+    2. 在effect中，调用computedObj.value，会触发computedObj的get value()，
+      在这个里面会把effect中的函数收集到computedImpl的依赖中，同时触发getter，从而这个getter又被收集到obj的依赖
+    3. 在setTimeout触发 obj.name 时会触发obj的依赖，从而执行收集到的计算属性 getter ，此时执行的是调度器，会把_dirty=true，
+    并触发computed的依赖；而computed的依赖是effect的内容，而effect的内容会触发computed的get value，因为此时_dirty=true，所以重新计算新的值，然后重新渲染
+
+    compute的get value会收集依赖，但是set value不会触发依赖，而是基于ReactiveEffect中第二个参数传入调度器，在调度器函数中触发依赖
+    并且在get value中，会基于 _dirty 变量判断是否是脏数据，从而决定是否需要重新计算的逻辑，达到computed缓存的效果。这个 _dirty 会在调度器函数中改为 true，
+    因为调度器函数是在 obj.name 被修改时执行的，此时computed依赖的值发生了变化，所以变成了脏数据。
+
+
+    简化版：
+    obj.name的依赖 -> () => { return '姓名：' + obj.name }
+    computedObj的依赖 -> () => { document.querySelector('#app').innerHTML = computedObj.value }
+    obj.name的 setter 行为，会触发computedObj的调度器函数，在该函数中把dirty改为true，并执行trigger触发computed的依赖。
+    而computed函数依赖是effect，所以会触发computedObj的get value重新计算得到最新值并渲染到页面
+    */
+    const { reactive, computed, effect } = Vue
+
+    const obj = reactive({
+      name: '张三'
+    })
+
+    const computedObj = computed(() => {
+      return '姓名：' + obj.name
+    })
+
+    effect(() => {
+      document.querySelector('#app').innerHTML = computedObj.value
+    })
+
+    setTimeout(() => {
+      obj.name = '李四'
+    }, 2000)
+  </script>
+</html>

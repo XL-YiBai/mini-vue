@@ -48,7 +48,7 @@ class RefImpl<T> {
 
 /**
  * 收集依赖
- * @param ref RefImpl
+ * @param ref
  */
 export function trackRefValue(ref) {
   if (activeEffect) {
@@ -58,7 +58,7 @@ export function trackRefValue(ref) {
 
 /**
  * 触发依赖
- * @param ref RefImpl
+ * @param ref
  */
 export function triggerRefValue(ref) {
   if (ref.dep) {
