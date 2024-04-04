@@ -2,6 +2,8 @@ import { isArray } from '@vue/shared'
 import { Dep, createDep } from './dep'
 import { ComputedRefImpl } from './computed'
 
+export type EffectScheduler = (...args: any[]) => any
+
 type KeyToDepMap = Map<any, Dep>
 /**
  * 收集所有依赖的 WeakMap 实例
@@ -23,7 +25,7 @@ export let activeEffect: ReactiveEffect | undefined
 export class ReactiveEffect<T = any> {
   computed?: ComputedRefImpl<T>
 
-  constructor(public fn: () => T) {}
+  constructor(public fn: () => T, public scheduler?: EffectScheduler | null) {}
 
   run() {
     activeEffect = this
@@ -93,9 +95,17 @@ export function trigger(target: object, key: unknown, newValue: unknown) {
 export function triggerEffects(dep: Dep) {
   const effects = isArray(dep) ? dep : [...dep]
 
-  // 依次触发依赖
+  // 依次触发依赖，先触发computed的，再触发其他的，避免后触发computed因为_dirty的值导致死循环
   for (const effect of effects) {
-    triggerEffect(effect)
+    if (effect.computed) {
+      triggerEffect(effect)
+    }
+  }
+
+  for (const effect of effects) {
+    if (!effect.computed) {
+      triggerEffect(effect)
+    }
   }
 }
 
@@ -104,5 +114,9 @@ export function triggerEffects(dep: Dep) {
  * @param effect 具体依赖，ReactiveEffect 的实例
  */
 export function triggerEffect(effect: ReactiveEffect) {
-  effect.run()
+  if (effect.scheduler) {
+    effect.scheduler()
+  } else {
+    effect.run()
+  }
 }
