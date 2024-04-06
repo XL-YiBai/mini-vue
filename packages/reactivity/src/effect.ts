@@ -1,4 +1,4 @@
-import { isArray } from '@vue/shared'
+import { extend, isArray } from '@vue/shared'
 import { Dep, createDep } from './dep'
 import { ComputedRefImpl } from './computed'
 
@@ -14,10 +14,22 @@ type KeyToDepMap = Map<any, Dep>
  */
 const targetMap = new WeakMap<any, KeyToDepMap>()
 
-export function effect<T = any>(fn: () => T) {
+export interface ReactiveEffectOptions {
+  lazy?: boolean
+  scheduler?: EffectScheduler
+}
+
+export function effect<T = any>(fn: () => T, options?: ReactiveEffectOptions) {
   const _effect = new ReactiveEffect(fn)
 
-  _effect.run()
+  if (options) {
+    // 把 options 合并进 _effect，这样如果options存在调度器的话，_effect就也会有调度器，trigger触发时，会执行传入的调度器
+    extend(_effect, options)
+  }
+
+  if (!options || !options.lazy) {
+    _effect.run()
+  }
 }
 
 export let activeEffect: ReactiveEffect | undefined
