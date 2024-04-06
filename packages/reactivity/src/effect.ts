@@ -44,6 +44,9 @@ export class ReactiveEffect<T = any> {
 
     return this.fn()
   }
+
+  // 后续可以在这实现stop方法，取消响应式
+  stop() {}
 }
 
 /**

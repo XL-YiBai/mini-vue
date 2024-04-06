@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    /*
+      watch函数中的job函数，本质上就是传入的回调函数，只不过在 job 里面更新了 newValue 和 oldValue 。
+      在 watch 函数内部，如果开启了deep，会通过 traverse 方法递归遍历每一个属性，手动触发对应属性的getter把watch依赖收集起来，以便以后这些属性修改时重新触发
+      如果直接监听 reactive 对象本身，那么会自动开启 deep。
+
+      watch 中生成 ReactiveEffect 对象时，通过调用 scheduler.ts 中的 queuePreFlushCb(job)，把 job 方法封装成了调度器
+      在触发依赖时，执行调度器，此时会把 job 通过放入队列 pendingPreFlushCbs，最后通过 Promise.resolve(flushJobs)，在 flushJobs 中依次取出作为微任务执行
+      所以多次同步改变同一个值时，只会取最后一次的值来执行依赖
+    */
+    const { reactive, watch } = Vue
+
+    // 1. reactive 构建响应性数据
+    const obj = reactive({
+      name: '张三'
+    })
+
+    // 2. 执行了 watch 函数
+    watch(
+      obj,
+      (value, oldValue) => {
+        console.log('watch 监听被触发')
+        console.log('value', value)
+      },
+      {
+        immediate: true
+      }
+    )
+
+    // 3. 两秒之后触发 setter 行为
+    setTimeout(() => {
+      obj.name = '李四'
+    }, 2000)
+  </script>
+</html>
