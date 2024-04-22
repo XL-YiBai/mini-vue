@@ -22,12 +22,19 @@ export const hasChanged = (value: any, oldValue: any): boolean =>
 
 /**
  * 判断是否为函数
- * @param val boolean
+ * @param val
  * @returns
  */
 export const isFunction = (val: unknown): val is Function => {
   return typeof val === 'function'
 }
+
+/**
+ * 判断是否为 string
+ * @param val
+ * @returns
+ */
+export const isString = (val: unknown): val is string => typeof val === 'string'
 
 export const extend = Object.assign
 
