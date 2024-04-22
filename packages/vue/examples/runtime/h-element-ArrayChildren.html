@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    const { h } = Vue
+
+    /*
+      这里 h 函数的执行顺序是自内向外的，先是 p1、p2、p3，最后才是 div
+      此时的 shapeFlag 是 17，代表这里是 text + array children 的情况，
+      element 类型是 1，array 类型是 16，两者按位或运算 | 得到 17
+    */
+    const vnode = h(
+      'div',
+      {
+        class: 'test'
+      },
+      [h('p', 'p1'), h('p', 'p2'), h('p', 'p3')]
+    )
+
+    console.log(vnode)
+  </script>
+</html>
