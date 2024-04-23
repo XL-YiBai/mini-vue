@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    const { h, render, Text, Comment, Fragment } = Vue
+
+    // 文本
+    const vnodeText = h(Text, '这是一个 Text')
+    console.log(vnodeText)
+
+    // 注释
+    const vnodeComment = h(Comment, '这是一个 Comment')
+    console.log(vnodeComment)
+
+    // 碎片，一个 Vue 组件可以有多个根标签
+    const vnodeFragment = h(Fragment, '这是一个 Fragment')
+    console.log(vnodeFragment)
+  </script>
+</html>
