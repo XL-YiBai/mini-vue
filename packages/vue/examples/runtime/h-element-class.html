@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+
+    <style>
+      .red {
+        color: red;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    /*
+      Vue 通过 normalizeClass 方法，对 class 进行增强，除了支持传递字符串，还支持对象和数组。
+      本质上在这个方法中是进行了判断，如果是数组，就递归拼接。如果是对象，就判断属性的值是true就拼接，是false就不拼接。
+
+      export function normalizeClass(value: unknown): string {
+        let res = ''
+
+        if (isString(value)) {
+          res = value
+        } else if (isArray(value)) {
+          for (let i = 0; i < value.length; i++) {
+            const normalized = normalizeClass(value[i])
+            res += normalized + ' '
+          }
+        } else if (isObject(value)) {
+          for (const name in value as object) {
+            if ((value as object)[name]) {
+              res += name + ' '
+            }
+          }
+        }
+
+        return res.trim()
+      }
+    */
+    const { h, render } = Vue
+
+    // 1. class 传递对象
+    // const vnode = h('div', {
+    //   class: {
+    //     'red': true
+    //   }
+    // }, '增强的 class')
+
+    // 2. class 传递数组
+    const vnode = h(
+      'div',
+      {
+        class: [
+          {
+            red: true
+          },
+          {
+            blue: true
+          },
+          {
+            yellow: false
+          }
+        ]
+      },
+      '增强的 class'
+    )
+
+    console.log(vnode)
+  </script>
+</html>
