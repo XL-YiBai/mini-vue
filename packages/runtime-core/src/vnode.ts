@@ -1,4 +1,4 @@
-import { isArray, isFunction, isString } from '@vue/shared'
+import { isArray, isFunction, isObject, isString } from '@vue/shared'
 import { ShapeFlags } from 'packages/shared/src/shapeFlags'
 
 export interface VNode {
@@ -14,7 +14,11 @@ export function isVNode(value: any): value is VNode {
 }
 
 export function createVNode(type, props, children): VNode {
-  const shapeFlag = isString(type) ? ShapeFlags.ELEMENT : 0
+  const shapeFlag = isString(type)
+    ? ShapeFlags.ELEMENT
+    : isObject(type)
+    ? ShapeFlags.STATEFUL_COMPONENT
+    : 0
 
   return createBaseVNode(type, props, children, shapeFlag)
 }
@@ -35,7 +39,8 @@ function createBaseVNode(type, props, children, shapeFlag) {
 export function normalizeChildren(vnode: VNode, children: unknown) {
   let type = 0
 
-  if (children === null) {
+  // 这里我们使用两等号为了兼容 children 是 undefined 也就是没传的情况，如果是组件作为 h 函数参数，children 就是 undefined
+  if (children == null) {
     children = null
   } else if (isArray(children)) {
     type = ShapeFlags.ARRAY_CHILDREN
