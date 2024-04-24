@@ -1,5 +1,6 @@
 import { ShapeFlags } from 'packages/shared/src/shapeFlags'
 import { Comment, Fragment, Text } from './vnode'
+import { EMPTY_OBJ } from '@vue/shared'
 
 export interface RenderOptions {
   /**
@@ -39,6 +40,7 @@ function baseCreateRender(options: RenderOptions): any {
       mountElement(newVNode, container, anchor)
     } else {
       // TODO: 更新操作
+      patchElement(oldVNode, newVNode)
     }
   }
 
@@ -65,6 +67,86 @@ function baseCreateRender(options: RenderOptions): any {
 
     // 4. 插入
     hostInsert(el, container, anchor)
+  }
+
+  const patchElement = (oldVNode, newVNode) => {
+    const el = (newVNode.el = oldVNode.el)
+
+    const oldProps = oldVNode.props || EMPTY_OBJ
+    const newProps = newVNode.props || EMPTY_OBJ
+
+    // 更新子节点
+    patchChildren(oldVNode, newVNode, el, null)
+
+    // 更新 props
+    patchProps(el, newVNode, oldProps, newProps)
+  }
+
+  const patchChildren = (oldVNode, newVNode, container, anchor = null) => {
+    // 获取新旧节点的子节点，以及他们的 shapeFlag
+    const c1 = oldVNode && oldVNode.children
+    const prevShapeFlag = oldVNode ? oldVNode.shapeFlag : 0
+    const c2 = newVNode && newVNode.children
+    const { shapeFlag } = newVNode
+
+    // 如果新节点的子节点是 text children
+    if (shapeFlag & ShapeFlags.TEXT_CHILDREN) {
+      // 新节点的子节点是 text children 的情况下，旧节点的子节点是 array children
+      if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        // TODO: 卸载旧子节点
+      }
+
+      // 新节点的子节点是 text children 的情况下，旧节点的子节点不是 array children，并且新旧子节点不是同一个
+      if (c2 !== c1) {
+        // 挂载新子节点的文本
+        hostSetElementText(container, c2)
+      }
+      // 如果新节点的子节点不是 text children
+    } else {
+      // 如果旧节点的子节点是 array children
+      if (prevShapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+        // 如果新节点的子节点也是 array children
+        if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+          // TODO: diff
+          // 如果新节点的子节点不是 array
+        } else {
+          // TODO: 卸载
+        }
+        // 如果旧节点的子节点不是 array
+      } else {
+        // 如果旧节点的子节点是 text (旧：text，新：text)
+        if (prevShapeFlag & ShapeFlags.TEXT_CHILDREN) {
+          // 删除旧节点的 text
+          hostSetElementText(container, '')
+        }
+        // 新节点的子节点是 array
+        if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+          // TODO: 单独新子节点的挂载
+        }
+      }
+    }
+  }
+
+  const patchProps = (el: Element, vnode, oldProps, newProps) => {
+    if (oldProps !== newProps) {
+      // 用新的属性覆盖旧的属性
+      for (const key in newProps) {
+        const next = newProps[key]
+        const prev = oldProps[key]
+        if (next !== prev) {
+          hostPatchProp(el, key, prev, next)
+        }
+      }
+
+      // 循环旧的props，如果属性在新的props中没有，那么需要删除掉。比如旧属性有一个class，但是新的节点没有了，就把class属性移除掉
+      if (oldProps !== EMPTY_OBJ) {
+        for (const key in oldProps) {
+          if (!(key in newProps)) {
+            hostPatchProp(el, key, oldProps[key], null)
+          }
+        }
+      }
+    }
   }
 
   const patch = (oldVNode, newVNode, container, anchor = null) => {
