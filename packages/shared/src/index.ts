@@ -40,3 +40,7 @@ export const extend = Object.assign
 
 // 空对象
 export const EMPTY_OBJ: { readonly [key: string]: any } = {}
+
+// 判断是否是以 on 开头，在判断监听事件时使用，事件都是onXxxx
+const onRE = /^on[^a-z]/
+export const isOn = (key: string) => onRE.test(key)

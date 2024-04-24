@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    /*
+      1. 触发 patch 方法
+      2. 根据 type 和 shapeFlag 决定当前执行哪种类型的挂载，这里是执行 element 的挂载，processElement
+      3. processElement 中根据旧节点是否存在，决定执行挂载还是更新，这里是挂载
+      4. 挂载中：
+        1. 生成 div 标签
+        2. 生成标签中的text
+        3. 处理 props
+        4. 通过 hostInsert 插入到容器中
+      5. 在 render 函数的最后，执行 container._vnode = vnode 记录旧节点，方便下次使用
+
+      之前的 shapeFlags 是通过 Element(1) 和 Text Children(8) 执行或(|)运算得到的 9
+      这里判断当前vnode是不是Element类型，就是通过当前的 shapeFlags(9) 与 Element(1) 进行与(&)运算，如果不是0，就满足条件能进if判断。
+      shapeFlags(9) 是 1001，Text(8) 是 1000，Element(1) 是 0001
+      与(&)运算就是按位对比，都是 1 就是 1，1001 & 1000 是 1000；1001 & 0001 是 0001，都不是0。所以能够通过按位 & 运算判断当前节点满足Element + Text Children
+    */
+    const { h, render } = Vue
+
+    const vnode = h(
+      'div',
+      {
+        class: 'test'
+      },
+      'hello render'
+    )
+
+    console.log(vnode)
+
+    render(vnode, document.querySelector('#app'))
+  </script>
+</html>
