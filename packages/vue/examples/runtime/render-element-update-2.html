@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+    <style>
+      .active {
+        color: #eb16c4;
+      }
+    </style>
+  </head>
+
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    /*
+      不同元素的新旧节点的更新是先删除旧元素，再挂载新节点
+    */
+    const { h, render } = Vue
+
+    const vnode = h(
+      'div',
+      {
+        class: 'test'
+      },
+      'hello render'
+    )
+
+    render(vnode, document.querySelector('#app'))
+
+    // 延迟两秒，生成新的 vnode，进行更新操作
+    setTimeout(() => {
+      const vnode2 = h(
+        // 和第一个节点属于不同类型
+        'h1',
+        {
+          class: 'active'
+        },
+        'update'
+      )
+      render(vnode2, document.querySelector('#app'))
+    }, 2000)
+  </script>
+</html>

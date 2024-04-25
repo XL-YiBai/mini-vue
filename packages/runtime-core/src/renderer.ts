@@ -1,5 +1,5 @@
 import { ShapeFlags } from 'packages/shared/src/shapeFlags'
-import { Comment, Fragment, Text } from './vnode'
+import { Comment, Fragment, Text, isSameVNodeType } from './vnode'
 import { EMPTY_OBJ } from '@vue/shared'
 
 export interface RenderOptions {
@@ -19,6 +19,10 @@ export interface RenderOptions {
    * 创建 element
    */
   createElement(type: string)
+  /**
+   * 删除 element
+   */
+  remove(el: Element)
 }
 
 export function createRender(options: RenderOptions) {
@@ -31,7 +35,8 @@ function baseCreateRender(options: RenderOptions): any {
     insert: hostInsert,
     patchProp: hostPatchProp,
     createElement: hostCreateElement,
-    setElementText: hostSetElementText
+    setElementText: hostSetElementText,
+    remove: hostRemove
   } = options
 
   const processElement = (oldVNode, newVNode, container, anchor) => {
@@ -154,6 +159,13 @@ function baseCreateRender(options: RenderOptions): any {
       return
     }
 
+    // 如果新旧节点不是同一个节点，那么把旧的从 Dom 中删除
+    // 这样 oldVNode 就没有了，之后在 processElement 时，就不是执行更新操作，而是直接执行挂载操作了
+    if (oldVNode && !isSameVNodeType(oldVNode, newVNode)) {
+      unmount(oldVNode)
+      oldVNode = null
+    }
+
     const { type, shapeFlag } = newVNode
 
     switch (type) {
@@ -173,6 +185,11 @@ function baseCreateRender(options: RenderOptions): any {
         break
     }
   }
+
+  const unmount = vnode => {
+    hostRemove(vnode.el)
+  }
+
   const render = (vnode, container) => {
     if (vnode === null) {
       // TODO: 卸载
