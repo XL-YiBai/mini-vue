@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+  </head>
+
+  <body>
+    <div id="app"></div>
+    <div id="app2"></div>
+  </body>
+
+  <script>
+    /*
+      通过下面的测试 className 的性能要高于 setAttribute('class') 的性能，
+      因此在 Vue 中设置 class 属性，除了SVG元素，都使用的 el.className = "xxx" 来指定
+    */
+    const divEle1 = document.querySelector('#app')
+    const divEle2 = document.querySelector('#app2')
+
+    console.time('className')
+    for (let i = 0; i < 10000; i++) {
+      divEle1.className = 'test-2'
+    }
+    console.timeEnd('className')
+
+    console.time('attr')
+    for (let i = 0; i < 10000; i++) {
+      divEle2.setAttribute('class', 'test')
+    }
+    console.timeEnd('attr')
+  </script>
+</html>
