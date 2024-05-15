@@ -13,8 +13,8 @@
   </body>
   <script>
     /*
-    有些属性只能通过 getAttribute 获取，有些属性只能通过 el.xxx 获取，
-    比如这里 textarea 的 type 属性需要通过 setAttribute 设置，而 value 属性需要通过 el.xxx 设置
+    有些属性只能通过 getAttribute 获取，有些属性只能通过 el.xxx(el[xxx]) 获取，
+    比如这里 textarea 的 type 属性需要通过 setAttribute 设置，而 value 属性需要通过 el.xxx(el[xxx]) 设置
     因此更新 props 时通过 shouldSetAsProp(el: Element, key: string) 方法判断一下 Key 是否通过 el.xxx 更新，否则通过 setAttribute 更新
   */
     const { h, render } = Vue
