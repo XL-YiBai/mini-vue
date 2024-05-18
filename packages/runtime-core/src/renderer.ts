@@ -4,15 +4,15 @@ import { EMPTY_OBJ } from '@vue/shared'
 
 export interface RenderOptions {
   /**
-   * 为制定的 element 的 props 打补丁
+   * 为指定的 element 的 props 打补丁
    */
   patchProp(el: Element, key: string, prevValue: any, nextValue: any): void
   /**
-   * 为制定的Element 设置text
+   * 为指定的 Element 设置 text
    */
   setElementText(node: Element, text: string): void
   /**
-   * 插入制定的 el 到 parent 中，anchor 表示插入的位置，即：锚点
+   * 插入指定的 el 到 parent 中，anchor 表示插入的位置，即：锚点
    */
   insert(el, parent: Element, anchor): void
   /**
@@ -23,6 +23,14 @@ export interface RenderOptions {
    * 删除 element
    */
   remove(el: Element)
+  /**
+   * 创建 Text 节点
+   */
+  createText(text: string)
+  /**
+   * 更新 Text 节点的内容
+   */
+  setText(node, text)
 }
 
 export function createRender(options: RenderOptions) {
@@ -36,8 +44,25 @@ function baseCreateRender(options: RenderOptions): any {
     patchProp: hostPatchProp,
     createElement: hostCreateElement,
     setElementText: hostSetElementText,
-    remove: hostRemove
+    remove: hostRemove,
+    createText: hostCreateText,
+    setText: hostSetText
   } = options
+
+  const processText = (oldVNode, newVNode, container, anchor) => {
+    // 挂载
+    if (oldVNode === null) {
+      newVNode.el = hostCreateText(newVNode.children)
+      hostInsert(newVNode.el, container, anchor)
+      // 更新
+    } else {
+      const el = (newVNode.el = oldVNode.el!)
+      // 更新文本节点的内容
+      if (newVNode.children !== oldVNode.children) {
+        hostSetText(el, newVNode.children)
+      }
+    }
+  }
 
   const processElement = (oldVNode, newVNode, container, anchor) => {
     if (oldVNode == null) {
@@ -170,6 +195,7 @@ function baseCreateRender(options: RenderOptions): any {
 
     switch (type) {
       case Text:
+        processText(oldVNode, newVNode, container, anchor)
         break
       case Comment:
         break
