@@ -31,6 +31,10 @@ export interface RenderOptions {
    * 更新 Text 节点的内容
    */
   setText(node, text)
+  /**
+   * 创建注释节点
+   */
+  createComment(text: string)
 }
 
 export function createRender(options: RenderOptions) {
@@ -46,12 +50,23 @@ function baseCreateRender(options: RenderOptions): any {
     setElementText: hostSetElementText,
     remove: hostRemove,
     createText: hostCreateText,
-    setText: hostSetText
+    setText: hostSetText,
+    createComment: hostCreateComment
   } = options
+
+  const processCommentNode = (oldVNode, newVNode, container, anchor) => {
+    if (oldVNode == null) {
+      newVNode.el = hostCreateComment(newVNode.children)
+      hostInsert(newVNode.el, container, anchor)
+    } else {
+      // 注释节点是静态节点，在 Vue 中不支持响应式更新
+      newVNode.el = oldVNode.el
+    }
+  }
 
   const processText = (oldVNode, newVNode, container, anchor) => {
     // 挂载
-    if (oldVNode === null) {
+    if (oldVNode == null) {
       newVNode.el = hostCreateText(newVNode.children)
       hostInsert(newVNode.el, container, anchor)
       // 更新
@@ -198,6 +213,7 @@ function baseCreateRender(options: RenderOptions): any {
         processText(oldVNode, newVNode, container, anchor)
         break
       case Comment:
+        processCommentNode(oldVNode, newVNode, container, anchor)
         break
       case Fragment:
         break

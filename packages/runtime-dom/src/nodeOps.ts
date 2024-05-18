@@ -22,9 +22,14 @@ export const nodeOps = {
     }
   },
 
+  // 创建文本节点
   createText: text => doc.createTextNode(text),
 
+  // 更新文本节点
   setText: (el: Element, text: string) => {
     el.nodeValue = text
-  }
+  },
+
+  // 创建注释节点
+  createComment: text => doc.createComment(text)
 }
