@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    /*
+      挂载带有状态（data）的组件，先在 applyOptions 方法中，拿到实例上的 data 函数，执行获取 data 对象，
+      然后通过 reactive 变成响应性数据，挂载到实例上 instance.data = reactive(data)
+      之后在初始化 vnode 时，通过 call 调用 render 方法改变 this 指向，这样在 render 中就能通过 this.xxx 读取data中的值 result = normalizeVNode(render!.call(data))
+      从而 render 中的 this.xxx 就变成了真正的数据，然后生成了 vnode，此时要做的就是挂载这个 vnode 就行，等同于挂载无状态组件
+
+      1. applyOptions 在 component.ts 中的 setupComponent -> setupStatefulComponent -> finishComponentSetup -> applyOptions(instance)
+        function applyOptions(instance: any) {
+          // 这里解构出来的 dataOptions 其实就是 component 中那个 data() { return { msg: 'xx', ... } }
+          const { data: dataOptions } = instance.type
+
+          if (dataOptions) {
+            const data = dataOptions()
+            if (isObject(data)) {
+              // 把 data 转换成响应性数据，挂载到 instance.data
+              instance.data = reactive(data)
+            }
+          }
+        }
+      2. render 方法的调用在 componentRenderUtils.ts 下的 renderComponentRoot ，调用 render 生成 vnode
+        export function renderComponentRoot(instance) {
+          const { vnode, render, data } = instance
+
+          let result
+
+          try {
+            if (vnode.shapeFlag & ShapeFlags.STATEFUL_COMPONENT) {
+              // 通过 call 改变 this 指向，这样在 render 中通过 this.xxx 就能拿到 data 中的数据
+              result = normalizeVNode(render!.call(data))
+            }
+          } catch (error) {
+            console.error(error)
+          }
+
+          return result
+        }
+    */
+    const { h, render } = Vue
+
+    const component = {
+      data() {
+        return {
+          msg: 'hello component'
+        }
+      },
+      render() {
+        return h('div', this.msg)
+      }
+    }
+
+    const vnode = h(component)
+    // 挂载
+    render(vnode, document.querySelector('#app'))
+  </script>
+</html>
