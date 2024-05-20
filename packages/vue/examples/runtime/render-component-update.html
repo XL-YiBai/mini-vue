@@ -13,7 +13,13 @@
   </body>
   <script>
     /*
-      对无状态组件（没有数据的组件）挂载，本质上其实是对它 render 的返回值的挂载
+      组件的更新操作本质上就是：
+      1. 先卸载原来的组件
+        const parent = child.parentNode
+        if (parent) {
+          parent.removeChild(child)
+        }
+      2. 挂载新的组件
     */
     const { h, render } = Vue
 
@@ -26,5 +32,17 @@
     const vnode = h(component)
     // 挂载
     render(vnode, document.querySelector('#app'))
+
+    setTimeout(() => {
+      const component2 = {
+        render() {
+          return h('div', 'update component')
+        }
+      }
+
+      const vnode2 = h(component2)
+      // 挂载
+      render(vnode2, document.querySelector('#app'))
+    }, 2000)
   </script>
 </html>
