@@ -121,9 +121,20 @@ function baseCreateRender(options: RenderOptions): any {
       if (!instance.isMounted) {
         // 挂载
 
+        const { bm, m } = instance
+        // 挂载之前执行 beforeMount 钩子
+        if (bm) {
+          bm()
+        }
+
         const subTree = (instance.subTree = renderComponentRoot(instance))
 
         patch(null, subTree, container, anchor)
+
+        // 挂载完之后，执行 mounted 钩子
+        if (m) {
+          m()
+        }
 
         initialVNode.el = subTree.el
       } else {
