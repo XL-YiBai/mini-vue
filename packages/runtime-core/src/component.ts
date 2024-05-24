@@ -60,7 +60,7 @@ function applyOptions(instance: any) {
 
   // 在数据初始化之前执行 beforeCreated
   if (beforeCreate) {
-    callHook(beforeCreate)
+    callHook(beforeCreate, instance.data)
   }
 
   if (dataOptions) {
@@ -73,11 +73,11 @@ function applyOptions(instance: any) {
 
   // 在数据初始化之后，执行 created
   if (created) {
-    callHook(created)
+    callHook(created, instance.data)
   }
 
   function registerLifecycleHook(register: Function, hook?: Function) {
-    register(hook, instance)
+    register(hook?.bind(instance.data), instance)
   }
 
   // 其他的生命周期都通过 registerLifecycleHook 包装注册，放到 instance 实例上，
@@ -88,6 +88,6 @@ function applyOptions(instance: any) {
   // ... 其他的这里没写
 }
 
-function callHook(hook: Function) {
-  hook()
+function callHook(hook: Function, proxy) {
+  hook.bind(proxy)()
 }
