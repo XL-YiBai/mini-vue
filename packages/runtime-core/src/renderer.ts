@@ -102,7 +102,6 @@ function baseCreateRender(options: RenderOptions): any {
       // 挂载操作
       mountElement(newVNode, container, anchor)
     } else {
-      // TODO: 更新操作
       patchElement(oldVNode, newVNode)
     }
   }
@@ -178,6 +177,7 @@ function baseCreateRender(options: RenderOptions): any {
       hostSetElementText(el, vnode.children)
       // 如果是 array children
     } else if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
+      mountChildren(vnode.children, el, anchor)
     }
 
     // 3. 设置 props
@@ -215,7 +215,6 @@ function baseCreateRender(options: RenderOptions): any {
       // 把 VNode 挂载上去
       patch(null, child, container, anchor)
     }
-    console.log('...', children, container)
   }
 
   const patchChildren = (oldVNode, newVNode, container, anchor = null) => {
@@ -244,6 +243,7 @@ function baseCreateRender(options: RenderOptions): any {
         // 如果新节点的子节点也是 array children
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
           // TODO: diff
+          patchKeyedChildren(c1, c2, container, anchor)
           // 如果新节点的子节点不是 array
         } else {
           // TODO: 卸载
@@ -260,6 +260,30 @@ function baseCreateRender(options: RenderOptions): any {
           // TODO: 单独新子节点的挂载
         }
       }
+    }
+  }
+
+  const patchKeyedChildren = (
+    oldChildren,
+    newChildren,
+    container,
+    parentAnchor
+  ) => {
+    let i = 0
+    const newChildrenLength = newChildren.length
+    let oldChildrenEnd = oldChildren.length - 1
+    let newChildrenEnd = newChildren.length - 1
+
+    // 1. 自前向后
+    while (i <= oldChildrenEnd && i <= newChildrenEnd) {
+      const oldVNode = oldChildren[i]
+      const newVNode = normalizeVNode(newChildren[i])
+      if (isSameVNodeType(oldChildren, newChildren)) {
+        patch(oldVNode, newVNode, container, null)
+      } else {
+        break
+      }
+      i++
     }
   }
 
