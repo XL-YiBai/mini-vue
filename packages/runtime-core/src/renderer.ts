@@ -313,6 +313,13 @@ function baseCreateRender(options: RenderOptions): any {
         }
       }
     }
+    // 4. 新节点少于旧节点，说明要删除一部分旧节点
+    else if (i > newChildrenEnd) {
+      while (i <= oldChildrenEnd) {
+        unmount(oldChildren[i])
+        i++
+      }
+    }
   }
 
   const patchProps = (el: Element, vnode, oldProps, newProps) => {

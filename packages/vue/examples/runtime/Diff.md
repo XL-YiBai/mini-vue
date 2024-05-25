@@ -187,3 +187,57 @@ if (i > oldChildrenEnd) {
   }
 }
 ```
+
+### 4. 旧节点比新节点多
+
+经过第一二轮循环处理，如果从前往后的指针 i 大于从后向前的新节点指针 newChildrenEnd，，并且 i 还小于等于旧节点指针 oldChildrenEnd，
+那说明新节点便利完了，但旧节点还有多出来的，要删除掉，此时 i 指向的节点就是多出来的，使用 while (i <= oldChildrenEnd) 依次 umount 卸载即可
+我们这里应该使用 else if 接着第三种场景的继续判断
+
+1. 多的在后面
+
+   - (a b) c
+   - (a b)
+   - i = 2, e1 = 2, e2 = 1, 说明应该卸载第三个 oldChildren[i] 也就是 oldChildren[2]
+
+2. 多的在前面
+
+   - c (a b)
+   - (a b)
+   - i = 0, e1 = 0, e2 = -1，说明应该卸载第一个 oldChildren[i] 也就是 oldChildren[0]
+
+3. 多的在中间
+
+   - (a) c (b)
+   - (a b)
+   - i = 1, e1 = 1, e2 = 0，说明应该卸载第二个 oldChildren[i] 也就是 oldChildren[1]
+
+源码：
+
+```ts
+// 4. common sequence + unmount
+// (a b) c
+// (a b)
+// i = 2, e1 = 2, e2 = 1
+// a (b c)
+// (b c)
+// i = 0, e1 = 0, e2 = -1
+else if (i > e2) {
+  while (i <= e1) {
+    unmount(c1[i], parentComponent, parentSuspense, true)
+    i++
+  }
+}
+```
+
+当前项目：
+
+```ts
+// 4. 新节点少于旧节点，说明要删除一部分旧节点
+else if (i > newChildrenEnd) {
+  while (i <= oldChildrenEnd) {
+    unmount(oldChildren[i])
+    i++
+  }
+}
+```
