@@ -1,5 +1,5 @@
 import { reactive } from '@vue/reactivity'
-import { isObject } from '@vue/shared'
+import { isFunction, isObject } from '@vue/shared'
 import { onBeforeMount, onMounted } from './apiLifecycle'
 
 let uid = 0
@@ -36,14 +36,35 @@ export function setupComponent(instance) {
 }
 
 function setupStatefulComponent(instance) {
+  const Component = instance.type
+
+  const { setup } = Component
+
+  // 存在 setup 函数就是 Composition API，否则认为是 Options API
+  if (setup) {
+    const setupResult = setup()
+    handleSetupResult(instance, setupResult)
+  } else {
+    finishComponentSetup(instance)
+  }
+}
+
+// 这个项目中我们只考虑 setup 返回值(setupResult)为函数的情况
+export function handleSetupResult(instance, setupResult) {
+  if (isFunction(setupResult)) {
+    // 把 setup 返回值作为 render 方法挂载到实例上
+    instance.render = setupResult
+  }
   finishComponentSetup(instance)
 }
 
 export function finishComponentSetup(instance) {
   const Component = instance.type
 
-  // 把组件上的 render 方法赋值到 instance 实例上
-  instance.render = Component.render
+  if (!instance.render) {
+    // 把组件上的 render 方法赋值到 instance 实例上
+    instance.render = Component.render
+  }
 
   applyOptions(instance)
 }

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    /*
+      这里我们只考虑 setup 返回一个函数的情况
+      在代码中，我们在 setupStatefulComponent 里面判断是否存在 setup，如果存在，就执行 handleSetupResult(instance, setupResult)，
+      把 setup 的返回值挂载到 instance.render = setupResult。
+      之后的逻辑就和之前一样了，等于之前是直接把 render 方法挂载到 instance.render ，现在是把 setup 返回的函数挂载到 instance.render。
+      之前还需要改变 this 指向才能取到 data，在 setup 函数中没有用 this，直接用函数内部的数据即可。
+
+      function setupStatefulComponent(instance) {
+        const Component = instance.type
+
+        const { setup } = Component
+
+        // 存在 setup 函数就是 Composition API，否则认为是 Options API
+        if (setup) {
+          const setupResult = setup()
+          handleSetupResult(instance, setupResult)
+        } else {
+          finishComponentSetup(instance)
+        }
+      }
+    */
+    const { reactive, h, render } = Vue
+
+    const component = {
+      setup() {
+        const obj = reactive({
+          name: '张三'
+        })
+
+        setTimeout(() => {
+          obj.name = '李四'
+        }, 2000)
+
+        return () => h('div', obj.name)
+      }
+    }
+
+    const vnode = h(component)
+    // 挂载
+    render(vnode, document.querySelector('#app'))
+  </script>
+</html>
