@@ -298,6 +298,21 @@ function baseCreateRender(options: RenderOptions): any {
       oldChildrenEnd--
       newChildrenEnd--
     }
+
+    // 3. 新节点多余旧节点
+    if (i > oldChildrenEnd) {
+      if (i <= newChildrenEnd) {
+        // 拿到新节点从后向前遍历的位置的后一位
+        const nextPos = newChildrenEnd + 1
+        // 获取锚点，如果 nextPos 能取到元素，就把节点查到这个元素前面，如果取不到，就用参数中的锚点，demo中是null，就是插入最后
+        const anchor =
+          nextPos < newChildrenLength ? newChildren[nextPos].el : parentAnchor
+        while (i <= newChildrenEnd) {
+          patch(null, normalizeVNode(newChildren[i]), container, anchor)
+          i++
+        }
+      }
+    }
   }
 
   const patchProps = (el: Element, vnode, oldProps, newProps) => {

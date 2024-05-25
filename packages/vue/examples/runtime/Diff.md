@@ -105,3 +105,85 @@ while (i <= oldChildrenEnd && i <= newChildrenEnd) {
   newChildrenEnd--
 }
 ```
+
+### 3. 新节点比旧节点多
+
+经过前两轮的情况循环，如果从前往后的指针 i 大于从后向前的旧节点指针 oldChildrenEnd，并且 i 还小于等于新节点指针 newChildrenEnd，
+那说明新节点都便利完了但是旧节点有没遍历到的，我们通过 nextPos 拿到新节点从后向前的指针的后一位，然后计算锚点 anchor
+如果 nextPos < newChildrenLength 也就是小于新节点的数量，那么 nextPos 可以从新节点中取到一个元素，就以这个元素作为锚点，把剩余新节点插入这个元素之前；
+如果不满足条件，那么就用参数中的 parentAnchor 作为锚点，在这个 Demo 中是 null，也就是插入到最后，
+然后继续循环剩下的新节点依次 patch 挂载上去即可
+
+1. 新的在后面
+
+   - (a b)
+   - (a b) c
+   - i = 2, e1 = 1, e2 = 2,
+   - nextPos = 3，通过 newChildren[nextPos] 取不到元素，所以用 parentAnchor(null) 作为锚点，把剩下的新节点插入最后
+
+2. 新的在前面
+
+   - (a b)
+   - c (a b)
+   - i = 0, e1 = -1, e2 = 0
+   - nextPos = 1，通过 newChildren[nextPos] 此时通过取到的元素是 a，所以用 a 作为锚点，把剩下的新节点插入 a 元素前面
+
+3. 新的在中间
+
+   - (a b)
+   - (a) c (b)
+   - i = 1, e1 = 0, e2 = 1
+   - nextPos = 2，通过 newChildren[nextPos] 此时通过取到的元素是 b，所以用 b 作为锚点，把剩下的新节点插入 b 元素前面
+
+源码：
+
+```ts
+// 3. common sequence + mount
+// (a b)
+// (a b) c
+// i = 2, e1 = 1, e2 = 2
+// (a b)
+// c (a b)
+// i = 0, e1 = -1, e2 = 0
+if (i > e1) {
+  if (i <= e2) {
+    const nextPos = e2 + 1
+    const anchor = nextPos < l2 ? (c2[nextPos] as VNode).el : parentAnchor
+    while (i <= e2) {
+      patch(
+        null,
+        (c2[i] = optimized
+          ? cloneIfMounted(c2[i] as VNode)
+          : normalizeVNode(c2[i])),
+        container,
+        anchor,
+        parentComponent,
+        parentSuspense,
+        isSVG,
+        slotScopeIds,
+        optimized
+      )
+      i++
+    }
+  }
+}
+```
+
+当前项目：
+
+```ts
+// 3. 新节点多余旧节点
+if (i > oldChildrenEnd) {
+  if (i <= newChildrenEnd) {
+    // 拿到新节点从后向前遍历的位置的后一位
+    const nextPos = newChildrenEnd + 1
+    // 获取锚点，如果 nextPos 能取到元素，就把节点查到这个元素前面，如果取不到，就用参数中的锚点，demo中是null，就是插入最后
+    const anchor =
+      nextPos < newChildrenLength ? newChildren[nextPos].el : parentAnchor
+    while (i <= newChildrenEnd) {
+      patch(null, normalizeVNode(newChildren[i]), container, anchor)
+      i++
+    }
+  }
+}
+```
