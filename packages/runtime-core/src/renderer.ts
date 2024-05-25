@@ -278,12 +278,25 @@ function baseCreateRender(options: RenderOptions): any {
     while (i <= oldChildrenEnd && i <= newChildrenEnd) {
       const oldVNode = oldChildren[i]
       const newVNode = normalizeVNode(newChildren[i])
-      if (isSameVNodeType(oldChildren, newChildren)) {
+      if (isSameVNodeType(oldVNode, newVNode)) {
         patch(oldVNode, newVNode, container, null)
       } else {
         break
       }
       i++
+    }
+
+    // 2. 自后向前
+    while (i <= oldChildrenEnd && i <= newChildrenEnd) {
+      const oldVNode = oldChildren[oldChildrenEnd]
+      const newVNode = normalizeVNode(newChildren[newChildrenEnd])
+      if (isSameVNodeType(oldVNode, newVNode)) {
+        patch(oldVNode, newVNode, container, null)
+      } else {
+        break
+      }
+      oldChildrenEnd--
+      newChildrenEnd--
     }
   }
 
