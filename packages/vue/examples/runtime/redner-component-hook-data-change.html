@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <script src="../../dist/vue.js"></script>
+  </head>
+
+  <body>
+    <div id="app"></div>
+  </body>
+  <script>
+    /*
+      当 data 中数据发生改变，视图也会更新
+      这里主要是，我们在 setupRenderEffect 中把 data 转成 ReactiveEffect 响应式数据时，
+      传递了 componentUpdateFn，当data数据发生改变时，会重新执行 componentUpdateFn，
+      const effect = (instance.effect = new ReactiveEffect(
+        componentUpdateFn,
+        () => queuePreFlushCb(update)
+      ))
+
+      在挂载组件时，我们会手动触发一次 effect.run()，此时执行 componentUpdateFn 会根据 if(!instance.isMounted) 判断当前是挂载阶段，
+      执行 renderComponentRoot，也就是执行 render 方法获得 subTree 这个 vnode，并挂载到容器中，并设置 instance.isMounted = true 表示该组件已经挂载
+
+      而修改数据后重新执行 componentUpdateFn ，此时因为 isMounted 为 true，所以会进入 else 中，再次执行 renderComponentRoot，
+      本质上是render的再次执行，执行时同样改变 this，此时就会拿到新的 data 数据，生成新的 vnode，也就是 nextTree，
+      之后执行 patch(prevTree, nextTree, container, anchor) 更新到页面上
+
+    */
+    const { h, render } = Vue
+
+    const component = {
+      data() {
+        return {
+          msg: 'hello component'
+        }
+      },
+      render() {
+        return h('div', this.msg)
+      },
+      // 组件实例处理完所有与状态相关的选项之后
+      created() {
+        setTimeout(() => {
+          this.msg = '你好，世界'
+        }, 2000)
+      }
+    }
+
+    const vnode = h(component)
+    // 挂载
+    render(vnode, document.querySelector('#app'))
+  </script>
+</html>
