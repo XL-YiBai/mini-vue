@@ -219,9 +219,9 @@ function baseCreateRender(options: RenderOptions): any {
 
   const patchChildren = (oldVNode, newVNode, container, anchor = null) => {
     // 获取新旧节点的子节点，以及他们的 shapeFlag
-    const c1 = oldVNode && oldVNode.children
+    const oldChildren = oldVNode && oldVNode.children
     const prevShapeFlag = oldVNode ? oldVNode.shapeFlag : 0
-    const c2 = newVNode && newVNode.children
+    const newChildren = newVNode && newVNode.children
     const { shapeFlag } = newVNode
 
     // 如果新节点的子节点是 text children
@@ -232,9 +232,9 @@ function baseCreateRender(options: RenderOptions): any {
       }
 
       // 新节点的子节点是 text children 的情况下，旧节点的子节点不是 array children，并且新旧子节点不是同一个
-      if (c2 !== c1) {
+      if (newChildren !== oldChildren) {
         // 挂载新子节点的文本
-        hostSetElementText(container, c2)
+        hostSetElementText(container, newChildren)
       }
       // 如果新节点的子节点不是 text children
     } else {
@@ -243,7 +243,7 @@ function baseCreateRender(options: RenderOptions): any {
         // 如果新节点的子节点也是 array children
         if (shapeFlag & ShapeFlags.ARRAY_CHILDREN) {
           // TODO: diff
-          patchKeyedChildren(c1, c2, container, anchor)
+          patchKeyedChildren(oldChildren, newChildren, container, anchor)
           // 如果新节点的子节点不是 array
         } else {
           // TODO: 卸载
@@ -320,6 +320,106 @@ function baseCreateRender(options: RenderOptions): any {
         i++
       }
     }
+    // 5. 乱序
+    else {
+      const oldStartIndex = i // prev starting index
+      const newStartIndex = i // next starting index
+
+      // 5.1 build key:index map for newChildren
+      const keyToNewIndexMap: Map<string | number | symbol, number> = new Map()
+      for (i = newStartIndex; i <= newChildrenEnd; i++) {
+        const nextChild = normalizeVNode(newChildren[i])
+        if (nextChild.key != null) {
+          keyToNewIndexMap.set(nextChild.key, i)
+        }
+      }
+
+      // 5.2 loop through old children left to be patched and try to patch
+      // matching nodes & remove nodes that are no longer present
+      let j
+      let patched = 0
+      const toBePatched = newChildrenEnd - newStartIndex + 1
+      let moved = false
+      // used to track whether any node has moved
+      let maxNewIndexSoFar = 0
+      // works as Map<newIndex, oldIndex>
+      // Note that oldIndex is offset by +1
+      // and oldIndex = 0 is a special value indicating the new node has
+      // no corresponding old node.
+      // used for determining longest stable subsequence
+      const newIndexToOldIndexMap = new Array(toBePatched)
+      for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0
+
+      for (i = oldStartIndex; i <= oldChildrenEnd; i++) {
+        const prevChild = oldChildren[i]
+        if (patched >= toBePatched) {
+          // all new children have been patched so this can only be a removal
+          unmount(prevChild)
+          continue
+        }
+        let newIndex
+        if (prevChild.key != null) {
+          newIndex = keyToNewIndexMap.get(prevChild.key)
+        } else {
+          // key-less node, try to locate a key-less node of the same type
+          for (j = newStartIndex; j <= newChildrenEnd; j++) {
+            if (
+              newIndexToOldIndexMap[j - newStartIndex] === 0 &&
+              isSameVNodeType(prevChild, newChildren[j])
+            ) {
+              newIndex = j
+              break
+            }
+          }
+        }
+        if (newIndex === undefined) {
+          unmount(prevChild)
+        } else {
+          newIndexToOldIndexMap[newIndex - newStartIndex] = i + 1
+          if (newIndex >= maxNewIndexSoFar) {
+            maxNewIndexSoFar = newIndex
+          } else {
+            moved = true
+          }
+          patch(prevChild, newChildren[newIndex], container, null)
+          patched++
+        }
+      }
+
+      // 5.3 move and mount
+      // generate longest stable subsequence only when nodes have moved
+      const increasingNewIndexSequence = moved
+        ? getSequence(newIndexToOldIndexMap)
+        : []
+      j = increasingNewIndexSequence.length - 1
+      // looping backwards so that we can use last patched node as anchor
+      for (i = toBePatched - 1; i >= 0; i--) {
+        const nextIndex = newStartIndex + i
+        const nextChild = newChildren[nextIndex]
+        const anchor =
+          nextIndex + 1 < newChildrenLength
+            ? newChildren[nextIndex + 1].el
+            : parentAnchor
+        if (newIndexToOldIndexMap[i] === 0) {
+          // mount new
+          patch(null, nextChild, container, anchor)
+        } else if (moved) {
+          // move if:
+          // There is no stable subsequence (e.g. a reverse)
+          // OR current node is not among the stable sequence
+          if (j < 0 || i !== increasingNewIndexSequence[j]) {
+            move(nextChild, container, anchor)
+          } else {
+            j--
+          }
+        }
+      }
+    }
+  }
+
+  const move = (vnode, container, anchor) => {
+    const { el } = vnode
+    hostInsert(el!, container, anchor)
   }
 
   const patchProps = (el: Element, vnode, oldProps, newProps) => {
@@ -400,4 +500,48 @@ function baseCreateRender(options: RenderOptions): any {
   return {
     render
   }
+}
+
+/**
+ * 获取最长递增子序列的下标
+ */
+function getSequence(arr: number[]): number[] {
+  const p = arr.slice()
+  const result = [0]
+  let i, j, u, v, c
+  const len = arr.length
+  for (i = 0; i < len; i++) {
+    const arrI = arr[i]
+    if (arrI !== 0) {
+      j = result[result.length - 1]
+      if (arr[j] < arrI) {
+        p[i] = j
+        result.push(i)
+        continue
+      }
+      u = 0
+      v = result.length - 1
+      while (u < v) {
+        c = (u + v) >> 1
+        if (arr[result[c]] < arrI) {
+          u = c + 1
+        } else {
+          v = c
+        }
+      }
+      if (arrI < arr[result[u]]) {
+        if (u > 0) {
+          p[i] = result[u - 1]
+        }
+        result[u] = i
+      }
+    }
+  }
+  u = result.length
+  v = result[u - 1]
+  while (u-- > 0) {
+    result[u] = v
+    v = p[v]
+  }
+  return result
 }
