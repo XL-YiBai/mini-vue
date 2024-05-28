@@ -241,3 +241,321 @@ else if (i > newChildrenEnd) {
   }
 }
 ```
+
+### 5. 乱序
+
+#### 求最长递增子序列
+
+这里是求最长递增子序列的索引，例如 1、3、2、5、4、6，最终返回的是 1 2 4 6 对应的索引 [0, 2, 4, 5]
+主要思路是：
+依次向后遍历，把最长子序列对应的索引保存在 result，如果遍历的值比 result 最后一个索引对应的值，也就是目前保存的最大值还要大，
+就把当前遍历的索引 push 到 result；反之，把 result 最后一个值替换成当前索引。例如遍历了 1 3，此时遍历 2，那么子序列会更新为 1 2，因为 2<3
+
+```ts
+// https://en.wikipedia.org/wiki/Longest_increasing_subsequence
+function getSequence(arr: number[]): number[] {
+  // 获取一个数组浅拷贝。p 中元素的改变，不会影响 arr
+  // p 是一个最终的回溯数组，它会在最终的 result 回溯中被使用
+  // 它会在每次 result 数组发生变化时，记录 result 更新前最后一个索引的值
+  const p = arr.slice()
+  // 定义返回值（最长递增子序列下标），因为下标从 0 开始，所以它的初始值为 0
+  const result = [0]
+  let i, j, u, v, c
+  // 当前遍历的数组的长度
+  const len = arr.length
+  for (i = 0; i < len; i++) {
+    const arrI = arr[i]
+    if (arrI !== 0) {
+      // result 中的最后一个元素，即 result 所保存当前最大值的那个下标
+      j = result[result.length - 1]
+      // 如果遍历的元素比 result 存储的最大值要大，说明存在更大的序列，就把当前下标 push 到 result 的最后，作为新的最大值下标，然后跳过本次循环
+      // 在 push 之前执行的 p[i] = j 是保存更新前的那个最大值下标，说明遍历到 i 下标时，发生了更新，并且更新前的最大值下标是 j
+      if (arr[j] < arrI) {
+        p[i] = j
+        // 把当前下标 i 放入到 result 的最后位置
+        result.push(i)
+        continue
+      }
+      // 在下标 u 和 v 之间进行二分查找
+      u = 0
+      v = result.length - 1
+      while (u < v) {
+        c = (u + v) >> 1
+        if (arr[result[c]] < arrI) {
+          u = c + 1
+        } else {
+          v = c
+        }
+      }
+      // 如果当前遍历的元素，比 result 存储的最大值
+      if (arrI < arr[result[u]]) {
+        if (u > 0) {
+          p[i] = result[u - 1]
+        }
+        result[u] = i
+      }
+    }
+  }
+  u = result.length
+  v = result[u - 1]
+  while (u-- > 0) {
+    result[u] = v
+    v = p[v]
+  }
+  return result
+}
+```
+
+#### 场景五的 Diff 逻辑
+
+先把一样的元素进行 patch 更新，然后用一个数组(newIndexToOldIndexMap)模拟 Map，数组的索引是新子节点的索引，数组的值是旧节点的索引 +1。
+如果说 patch 完需要进行移动，那么就基于这个数组求最长递增子序列，该子序列的节点是不动的，只移动其他子节点。
+求最长递增子序列的原因是因为这样可以减少移动的操作，需要移动的元素更少。
+
+源码：
+
+```ts
+// 5. unknown sequence
+// [i ... e1 + 1]: a b [c d e] f g
+// [i ... e2 + 1]: a b [e d c h] f g
+// i = 2, e1 = 4, e2 = 5
+else {
+  const s1 = i // prev starting index
+  const s2 = i // next starting index
+
+  // 5.1 build key:index map for newChildren
+  const keyToNewIndexMap: Map<string | number | symbol, number> = new Map()
+  for (i = s2; i <= e2; i++) {
+    const nextChild = (c2[i] = optimized
+      ? cloneIfMounted(c2[i] as VNode)
+      : normalizeVNode(c2[i]))
+    if (nextChild.key != null) {
+      if (__DEV__ && keyToNewIndexMap.has(nextChild.key)) {
+        warn(
+          `Duplicate keys found during update:`,
+          JSON.stringify(nextChild.key),
+          `Make sure keys are unique.`
+        )
+      }
+      keyToNewIndexMap.set(nextChild.key, i)
+    }
+  }
+
+  // 5.2 loop through old children left to be patched and try to patch
+  // matching nodes & remove nodes that are no longer present
+  let j
+  let patched = 0
+  const toBePatched = e2 - s2 + 1
+  let moved = false
+  // used to track whether any node has moved
+  let maxNewIndexSoFar = 0
+  // works as Map<newIndex, oldIndex>
+  // Note that oldIndex is offset by +1
+  // and oldIndex = 0 is a special value indicating the new node has
+  // no corresponding old node.
+  // used for determining longest stable subsequence
+  const newIndexToOldIndexMap = new Array(toBePatched)
+  for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0
+
+  for (i = s1; i <= e1; i++) {
+    const prevChild = c1[i]
+    if (patched >= toBePatched) {
+      // all new children have been patched so this can only be a removal
+      unmount(prevChild, parentComponent, parentSuspense, true)
+      continue
+    }
+    let newIndex
+    if (prevChild.key != null) {
+      newIndex = keyToNewIndexMap.get(prevChild.key)
+    } else {
+      // key-less node, try to locate a key-less node of the same type
+      for (j = s2; j <= e2; j++) {
+        if (
+          newIndexToOldIndexMap[j - s2] === 0 &&
+          isSameVNodeType(prevChild, c2[j] as VNode)
+        ) {
+          newIndex = j
+          break
+        }
+      }
+    }
+    if (newIndex === undefined) {
+      unmount(prevChild, parentComponent, parentSuspense, true)
+    } else {
+      newIndexToOldIndexMap[newIndex - s2] = i + 1
+      if (newIndex >= maxNewIndexSoFar) {
+        maxNewIndexSoFar = newIndex
+      } else {
+        moved = true
+      }
+      patch(
+        prevChild,
+        c2[newIndex] as VNode,
+        container,
+        null,
+        parentComponent,
+        parentSuspense,
+        isSVG,
+        slotScopeIds,
+        optimized
+      )
+      patched++
+    }
+  }
+
+  // 5.3 move and mount
+  // generate longest stable subsequence only when nodes have moved
+  const increasingNewIndexSequence = moved
+    ? getSequence(newIndexToOldIndexMap)
+    : EMPTY_ARR
+  j = increasingNewIndexSequence.length - 1
+  // looping backwards so that we can use last patched node as anchor
+  for (i = toBePatched - 1; i >= 0; i--) {
+    const nextIndex = s2 + i
+    const nextChild = c2[nextIndex] as VNode
+    const anchor =
+      nextIndex + 1 < l2 ? (c2[nextIndex + 1] as VNode).el : parentAnchor
+    if (newIndexToOldIndexMap[i] === 0) {
+      // mount new
+      patch(
+        null,
+        nextChild,
+        container,
+        anchor,
+        parentComponent,
+        parentSuspense,
+        isSVG,
+        slotScopeIds,
+        optimized
+      )
+    } else if (moved) {
+      // move if:
+      // There is no stable subsequence (e.g. a reverse)
+      // OR current node is not among the stable sequence
+      if (j < 0 || i !== increasingNewIndexSequence[j]) {
+        move(nextChild, container, anchor, MoveType.REORDER)
+      } else {
+        j--
+      }
+    }
+  }
+}
+```
+
+本项目：
+直接复制 Vue 的逻辑，修改一下变量名适配
+
+```ts
+else {
+  const oldStartIndex = i // 旧子节点的开始索引
+  const newStartIndex = i // 新子节点的开始索引
+
+  // 5.1 创建一个 <key (新节点的 key): index (新节点的位置)> 的 Map 对象 KeyToNewIndexMap。
+  // 通过该对象可知：新的 child (根据 key 判断指定 child) 更新后的位置（根据对应的 index 判断）在哪里
+  const keyToNewIndexMap: Map<string | number | symbol, number> = new Map()
+  for (i = newStartIndex; i <= newChildrenEnd; i++) {
+    const nextChild = normalizeVNode(newChildren[i])
+    if (nextChild.key != null) {
+      keyToNewIndexMap.set(nextChild.key, i)
+    }
+  }
+
+  // 5.2 loop through old children left to be patched and try to patch
+  // matching nodes & remove nodes that are no longer present
+  let j
+  let patched = 0 // 已经更新的节点数量
+  const toBePatched = newChildrenEnd - newStartIndex + 1 // 总共需要更新的节点数量
+  let moved = false // 用于标记是否需要移动，在 5.3 使用
+  // used to track whether any node has moved
+  let maxNewIndexSoFar = 0
+  // works as Map<newIndex, oldIndex>
+  // Note that oldIndex is offset by +1
+  // and oldIndex = 0 is a special value indicating the new node has
+  // no corresponding old node.
+  // used for determining longest stable subsequence
+  // 这个数组的下标是新节点下标，元素是旧节点的元素索引值+1。这个数组到时候会用于求最长递增子序列。
+  const newIndexToOldIndexMap = new Array(toBePatched)
+  for (i = 0; i < toBePatched; i++) newIndexToOldIndexMap[i] = 0
+
+  // 遍历旧节点
+  for (i = oldStartIndex; i <= oldChildrenEnd; i++) {
+    const prevChild = oldChildren[i]
+    // 如果已经处理的节点数大于了待处理的节点数，那说明此时处理的这个节点是多的，直接卸载就完了
+    if (patched >= toBePatched) {
+      // all new children have been patched so this can only be a removal
+      unmount(prevChild)
+      continue
+    }
+
+    let newIndex // 新节点需要存放的位置
+    if (prevChild.key != null) {
+      newIndex = keyToNewIndexMap.get(prevChild.key)
+    } else {
+      // 这个 else 的作用是处理边缘情况，如果在 keyToNewIndexMap 没有找到，那么还是尝试循环，希望能在循环里面找到新节点的位置。
+      // key-less node, try to locate a key-less node of the same type
+      for (j = newStartIndex; j <= newChildrenEnd; j++) {
+        if (
+          newIndexToOldIndexMap[j - newStartIndex] === 0 &&
+          isSameVNodeType(prevChild, newChildren[j])
+        ) {
+          newIndex = j
+          break
+        }
+      }
+    }
+    // 如果还是没找到这个节点需要存放的位置，那说明新子节点没有这个节点，就卸载掉
+    if (newIndex === undefined) {
+      unmount(prevChild)
+    } else {
+      // 更新那个列表，以剩余新节点的位置，映射出旧节点的位置。到时候拿来求最长递增子序列。
+      newIndexToOldIndexMap[newIndex - newStartIndex] = i + 1
+      // maxNewIndexSoFar 保存我们最近处理的节点的 index 的最大值，按理来说这个值应该是递增的，因为从左往右。
+      if (newIndex >= maxNewIndexSoFar) {
+        maxNewIndexSoFar = newIndex
+      } else {
+        // 在 else 中，如果 newIndex < maxNewIndexSoFar，这说明我们刚处理的节点的索引并没有递增，说明顺序不对了，那后续需要移动节点，因此把 moved 标记为 true，在 5.3 中进行移动操作
+        moved = true
+      }
+      patch(prevChild, newChildren[newIndex], container, null)
+      patched++
+    }
+  }
+
+  // 5.3 move and mount
+  // generate longest stable subsequence only when nodes have moved
+  // 如果 moved 为 true，说明需要移动，那么就用 getSequence(newIndexToOldIndexMap) 求最长递增子序列。
+  // 最长递增子序列对应的节点是不动的，除此之外的节点才可能需要移动。
+  const increasingNewIndexSequence = moved
+    ? getSequence(newIndexToOldIndexMap)
+    : []
+  j = increasingNewIndexSequence.length - 1
+  // looping backwards so that we can use last patched node as anchor
+  for (i = toBePatched - 1; i >= 0; i--) {
+    const nextIndex = newStartIndex + i
+    const nextChild = newChildren[nextIndex]
+    const anchor =
+      nextIndex + 1 < newChildrenLength
+        ? newChildren[nextIndex + 1].el
+        : parentAnchor
+    // newIndexToOldIndexMap[i] === 0 说明，当前这个新节点没有与之对应的旧节点，那就是挂载新的节点。
+    if (newIndexToOldIndexMap[i] === 0) {
+      // mount new
+      patch(null, nextChild, container, anchor)
+    } else if (moved) {
+      // move if:
+      // There is no stable subsequence (e.g. a reverse)
+      // OR current node is not among the stable sequence
+      if (j < 0 || i !== increasingNewIndexSequence[j]) {
+        move(nextChild, container, anchor)
+      } else {
+        j--
+      }
+    }
+  }
+}
+```
+
+### 总结
+
+Diff 指的是：**添加、删除、打补丁、移动** 这四个行为。Diff 分成五大场景，先从左至右 Diff，相同元素打补丁，然后从右至左 Diff，相同元素打补丁。
+然后对新节点更多的情况，挂载新增加的节点。如果新节点更少的情况，把旧的多余节点卸载。最后是对乱序情况下的处理。
