@@ -1,4 +1,5 @@
 import { NodeTypes } from './ast'
+import { isSingleElementRoot } from './hoistStatic'
 
 export interface TransformContext {
   root
@@ -32,6 +33,18 @@ export function transform(root, options) {
   // 生成上下文 context
   const context = createTransformContext(root, options)
   traverseNode(root, context)
+
+  // 生成根节点的 codegen 对象
+  createRootCodegen(root)
+
+  // 把 context 上下文中 helpers 保存的方法名放到根节点的 helpers 中
+  root.helpers = [...context.helpers.keys()]
+  root.components = []
+  root.directives = []
+  root.imports = []
+  root.hoists = []
+  root.temps = []
+  root.cached = []
 }
 
 /*
@@ -76,4 +89,19 @@ export function traverseChildren(parent, context: TransformContext) {
     // 递归
     traverseNode(node, context)
   })
+}
+
+function createRootCodegen(root) {
+  const { children } = root
+
+  // Vue2 仅支持单个根节点
+  if (children.length === 1) {
+    const child = children[0]
+    // isSingleElementRoot 判断是否是单个 Element 的根节点
+    if (isSingleElementRoot(root, child) && child.codegenNode) {
+      root.codegenNode = child.codegenNode
+    }
+  }
+
+  // Vue3支持多个根节点
 }
