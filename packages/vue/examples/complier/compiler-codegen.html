@@ -12,14 +12,6 @@
   <script>
     // 编译器本质上就是解析生成 AST，然后 transform 转化 AST，最后通过 generate 生成下面那段字符串，
     // 通过这个字符串构造一个 renderFn 的函数去作为 render 执行生成 vnode 进而渲染到页面上
-    const { compile, h, render } = Vue
-
-    const template = `<div>hello world</div>`
-
-    const { code } = compile(template)
-
-    console.log(code)
-
     /*
       const _Vue = Vue
 
@@ -29,7 +21,12 @@
         return _createElementVNode("div", [], ["hello world"])
       }
     */
-    const renderFn = new Function(code)()
+
+    const { compile, h, render } = Vue
+
+    const template = `<div>hello world</div>`
+
+    const renderFn = compile(template)
     console.log(renderFn)
 
     const component = {
