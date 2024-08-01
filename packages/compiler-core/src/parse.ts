@@ -41,7 +41,7 @@ function parseChildren(context: ParserContext, ancestors) {
     let node
 
     if (startsWith(s, '{{')) {
-      // TODO: {{
+      node = parseInterpolation(context)
     } else if (s[0] === '<') {
       // 如果以 '<' 开头，并且第二个元素是字母，那么就表示这是一个标签的开始
       if (/[a-z]/i.test(s[1])) {
@@ -58,6 +58,31 @@ function parseChildren(context: ParserContext, ancestors) {
   }
 
   return nodes
+}
+
+function parseInterpolation(context: ParserContext) {
+  // {{ xx }} 只需要处理 xx
+  const [open, close] = ['{{', '}}']
+
+  // 移动游标去除开头的 {{
+  advanceBy(context, open.length)
+
+  // 拿到中间的内容 xx
+  const closeIndex = context.source.indexOf(close, open.length)
+  const preTrimContext = parseTextData(context, closeIndex)
+  const content = preTrimContext.trim()
+
+  // 移动游标去除结尾的 }}
+  advanceBy(context, close.length)
+
+  return {
+    type: NodeTypes.INTERPOLATION,
+    content: {
+      type: NodeTypes.SIMPLE_EXPRESSION,
+      isStatic: false,
+      content
+    }
+  }
 }
 
 function parseElement(context: ParserContext, ancestors) {
