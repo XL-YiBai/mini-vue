@@ -16,6 +16,7 @@
     const template = `<div>hello {{ msg }}</div>`
 
     const renderFn = compile(template)
+    console.log(renderFn)
 
     const component = {
       data() {
@@ -23,7 +24,12 @@
           msg: 'world'
         }
       },
-      render: renderFn
+      render: renderFn,
+      created() {
+        setTimeout(() => {
+          this.msg = '世界'
+        }, 2000)
+      }
     }
 
     const vnode = h(component)

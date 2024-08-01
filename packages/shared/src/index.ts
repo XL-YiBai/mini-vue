@@ -1,3 +1,5 @@
+export { toDisplayString } from './toDisplayString'
+
 /**
  * 判断是否是数组
  */
