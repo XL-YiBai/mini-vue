@@ -110,6 +110,9 @@ function genNode(node, context) {
     case NodeTypes.COMPOUND_EXPRESSION:
       genCompoundExpression(node, context)
       break
+    case NodeTypes.ELEMENT:
+      genNode(node.codegenNode, context)
+      break
   }
 }
 
