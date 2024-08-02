@@ -7,7 +7,7 @@ import { generate } from './codegen'
 
 export function baseCompile(template: string, options = {}) {
   const ast = baseParse(template)
-  // console.log('ast', JSON.stringify(ast))
+  console.log('ast', JSON.stringify(ast))
 
   transform(
     ast,
@@ -16,6 +16,6 @@ export function baseCompile(template: string, options = {}) {
     })
   )
 
-  console.log(ast)
+  // console.log(ast)
   return generate(ast)
 }

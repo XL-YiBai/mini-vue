@@ -110,6 +110,10 @@ function parseTag(context: ParserContext, type: TagType) {
 
   advanceBy(context, match[0].length)
 
+  // 属性和指令的处理
+  advanceSpaces(context)
+  let props = parseAttributes(context, type)
+
   // 判断这个标签是否是自闭和的
   let isSelfClosing = startsWith(context.source, '/>')
   // 如果是自闭和的 '/>' 那么游标需要移动 2 位，如果不是，那么移动 1 位
@@ -120,7 +124,103 @@ function parseTag(context: ParserContext, type: TagType) {
     tag,
     tagType: ElementTypes.ELEMENT,
     children: [],
-    props: []
+    props
+  }
+}
+
+function advanceSpaces(context: ParserContext): void {
+  const match = /^[\t\r\n\f ]+/.exec(context.source)
+
+  if (match) {
+    advanceBy(context, match[0].length)
+  }
+}
+
+function parseAttributes(context, type) {
+  const props: any = []
+  const attributeNames = new Set<string>()
+  while (
+    context.source.length > 0 &&
+    !startsWith(context.source, '>') &&
+    !startsWith(context.source, '/>')
+  ) {
+    const attr = parseAttribute(context, attributeNames)
+    if (type === TagType.Start) {
+      props.push(attr)
+    }
+    advanceSpaces(context)
+  }
+
+  return props
+}
+
+function parseAttribute(context: ParserContext, nameSet: Set<string>) {
+  const match = /^[^\t\r\n\f />][^\t\r\n\f />=]*/.exec(context.source)!
+  const name = match[0]
+  nameSet.add(name)
+
+  advanceBy(context, name.length)
+  let value: any = undefined
+
+  if (/^[\t\r\n\f ]*=/) {
+    advanceSpaces(context)
+    advanceBy(context, 1)
+    advanceSpaces(context)
+    value = parseAttributeValue(context)
+  }
+
+  // v- 指令
+  if (/^(v-[A-Za-z0-9-]|:|\.|@|#)/.test(name)) {
+    // 匹配指令名，如 if
+    const match =
+      /(?:^v-([a-z0-9-]+))?(?:(?::|^\.|^@|^#)(\[[^\]]+\]|[^\.]+))?(.+)?$/i.exec(
+        name
+      )!
+    let dirName = match[1]
+    return {
+      type: NodeTypes.DIRECTIVE,
+      name: dirName,
+      exp: value && {
+        type: NodeTypes.SIMPLE_EXPRESSION,
+        content: value.content,
+        isStatic: false,
+        loc: {}
+      },
+      art: undefined,
+      modifiers: undefined,
+      loc: {}
+    }
+  }
+
+  return {
+    type: NodeTypes.ATTRIBUTE,
+    name,
+    value: value && {
+      type: NodeTypes.TEXT,
+      content: value.content,
+      loc: {}
+    },
+    loc: {}
+  }
+}
+
+function parseAttributeValue(context: ParserContext) {
+  let content = ''
+
+  const quote = context.source[0]
+  advanceBy(context, 1)
+  const endIndex = context.source.indexOf(quote)
+  if (endIndex === -1) {
+    content = parseTextData(context, context.source.length)
+  } else {
+    content = parseTextData(context, endIndex)
+    advanceBy(context, 1)
+  }
+
+  return {
+    content,
+    isQuoted: true,
+    loc: {}
   }
 }
 
