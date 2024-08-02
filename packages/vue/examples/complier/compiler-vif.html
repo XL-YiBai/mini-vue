@@ -21,13 +21,13 @@
     const component = {
       data() {
         return {
-          isShow: true
+          isShow: false
         }
       },
       render: renderFn,
       created() {
         setTimeout(() => {
-          this.msg = '世界'
+          this.isShow = true
         }, 2000)
       }
     }

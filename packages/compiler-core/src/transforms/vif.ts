@@ -71,7 +71,7 @@ function createCodegenNodeForBranch(
     return createConditionalExpression(
       branch.condition,
       createChildrenCodegenNode(branch, keyIndex),
-      createCallExpression(context.helper(CREATE_COMMENT), ['"v-if', 'true'])
+      createCallExpression(context.helper(CREATE_COMMENT), ['"v-if"', 'true'])
     )
   } else {
     return createChildrenCodegenNode(branch, keyIndex)
@@ -93,6 +93,7 @@ function createChildrenCodegenNode(branch, keyIndex: number) {
   const vnodeCall = getMemoedVNodeCall(ret)
 
   injectProp(vnodeCall, keyProperty)
+  return ret
 }
 
 export function injectProp(node, prop) {

@@ -94,6 +94,10 @@ function genFunctionPreamble(context) {
 
 function genNode(node, context) {
   switch (node.type) {
+    case NodeTypes.ELEMENT:
+    case NodeTypes.IF:
+      genNode(node.codegenNode, context)
+      break
     case NodeTypes.VNODE_CALL:
       genVNodeCall(node, context)
       break
@@ -113,7 +117,72 @@ function genNode(node, context) {
     case NodeTypes.ELEMENT:
       genNode(node.codegenNode, context)
       break
+    // 调用
+    case NodeTypes.JS_CALL_EXPRESSION:
+      genCallExpression(node, context)
+      break
+    // 条件
+    case NodeTypes.JS_CONDITIONAL_EXPRESSION:
+      genConditionalExpression(node, context)
+      break
   }
+}
+
+function genCallExpression(node, context) {
+  const { push, helper } = context
+  const callee = isString(node.callee) ? node.callee : helper(node.callee)
+
+  push(callee + `(`, node)
+  genNodeList(node.arguments, context)
+  push(`)`)
+}
+
+/**
+ * isShow
+ *        ? _createElementVNode("h1", null, ["你好，世界"])
+ *        : _createCommentVNode("v-if", true)
+ */
+function genConditionalExpression(node, context) {
+  const { test, consequent, alternate, newline: needNewline } = node
+  const { push, indent, deindent, newline } = context
+
+  if (test.type === NodeTypes.SIMPLE_EXPRESSION) {
+    genExpression(test, context)
+  }
+
+  // 换行
+  needNewline && indent()
+
+  // 缩进++
+  context.indentLevel++
+  // 写入空格
+  needNewline || push(` `)
+  // 写入 ？
+  push(`? `)
+  // 写入满足条件的处理逻辑
+  genNode(consequent, context)
+  // 缩进 --
+  context.indentLevel--
+  // 换行
+  needNewline && newline()
+  // 写入空格
+  needNewline || push(` `)
+  // 写入:
+  push(`: `)
+  // 判断 else 的类型是否也为 JS_CONDITIONAL_EXPRESSION
+  const isNested = alternate.type === NodeTypes.JS_CONDITIONAL_EXPRESSION
+  // 不是则缩进++
+  if (!isNested) {
+    context.indentLevel++
+  }
+  // 写入 else （不满足条件）的处理逻辑
+  genNode(alternate, context)
+  // 缩进--
+  if (!isNested) {
+    context.indentLevel--
+  }
+  // 控制缩进 + 换行
+  needNewline && deindent()
 }
 
 function genCompoundExpression(node, context) {

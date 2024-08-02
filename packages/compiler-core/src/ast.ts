@@ -62,7 +62,7 @@ export function createConditionalExpression(
   newline = true
 ) {
   return {
-    type: NodeTypes.JS_CACHE_EXPRESSION,
+    type: NodeTypes.JS_CONDITIONAL_EXPRESSION,
     test,
     consequent,
     alternate,
