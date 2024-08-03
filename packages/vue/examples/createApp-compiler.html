@@ -15,18 +15,7 @@
     const { createApp, h } = Vue
     // 构建组件实例
     const APP = {
-      template: '<div>hello world, <h1 v-if="isShow">{{ msg }}</h1></div>',
-      data() {
-        return {
-          msg: '你好，世界',
-          isShow: false
-        }
-      },
-      created() {
-        setTimeout(() => {
-          this.isShow = true
-        }, 2000)
-      }
+      template: `<div>hello world</div>`
     }
 
     // 通过 createApp 标记挂载组件
